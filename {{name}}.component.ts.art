@@ -2,7 +2,6 @@ import {Component, OnInit, TemplateRef, ViewChild} from '@angular/core';
 import {FormBuilder, FormGroup} from '@angular/forms';
 import {ActivatedRoute, Router} from '@angular/router';
 import {NzModalService} from 'ng-zorro-antd';
-import {DataManageService} from '../data-manage.service';
 import {GlobalService} from '../../../services/global.service';
 import {Observable} from 'rxjs/Observable';
 import {CommonValidators} from '../../../utils/common-validators';
@@ -12,7 +11,7 @@ import {CommonValidators} from '../../../utils/common-validators';
   templateUrl: './{{$data['component']}}.component.html',
   styleUrls: ['./{{$data['component']}}.component.scss']
 })
-export class {{$data['component']}}Component implements OnInit {
+export class {{ $data['component'] | toPreUpper }}Component implements OnInit {
 
   // 查询条件
   searchForm: FormGroup;
@@ -22,9 +21,9 @@ export class {{$data['component']}}Component implements OnInit {
   pageSize = 10;
   total = 0;
   tableLoading = false;
-  {{$data['component']}}s: any[] = [];
+  data: any[] = [];
 
-  // 修改用户信息对话框
+  // 修改对话框
   editDialogInstance;
   editForm: FormGroup;
   isAdd: boolean;
@@ -36,21 +35,16 @@ export class {{$data['component']}}Component implements OnInit {
               private router: Router,
               private activatedRoute: ActivatedRoute,
               private modalService: NzModalService,
-              private dataManageService: DataManageService,
               private globalService: GlobalService) {
   }
 
   ngOnInit() {
     // 查询表单
     this.searchForm = this.formBuilder.group({
-      name: ''
     });
 
     // 用户编辑表单
     this.editForm = this.formBuilder.group({
-      id: ['', CommonValidators.required],
-      vendorId: ['', CommonValidators.required],
-      name: ['', CommonValidators.required],
     });
 
     this.loadData(true);
