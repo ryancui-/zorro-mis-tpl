@@ -1,0 +1,142 @@
+import {Component, OnInit, TemplateRef, ViewChild} from '@angular/core';
+import {FormBuilder, FormGroup} from '@angular/forms';
+import {ActivatedRoute, Router} from '@angular/router';
+import {NzModalService} from 'ng-zorro-antd';
+import {DataManageService} from '../data-manage.service';
+import {GlobalService} from '../../../services/global.service';
+import {Observable} from 'rxjs/Observable';
+import {CommonValidators} from '../../../utils/common-validators';
+
+@Component({
+  selector: '{{$data['component']}}',
+  templateUrl: './{{$data['component']}}.component.html',
+  styleUrls: ['./{{$data['component']}}.component.scss']
+})
+export class {{$data['component']}}Component implements OnInit {
+
+  // 查询条件
+  searchForm: FormGroup;
+
+  // 分页列表
+  pageIndex = 1;
+  pageSize = 10;
+  total = 0;
+  tableLoading = false;
+  {{$data['component']}}s: any[] = [];
+
+  // 修改用户信息对话框
+  editDialogInstance;
+  editForm: FormGroup;
+  isAdd: boolean;
+
+  @ViewChild('editDialog')
+  editDialog: TemplateRef<any>;
+
+  constructor(private formBuilder: FormBuilder,
+              private router: Router,
+              private activatedRoute: ActivatedRoute,
+              private modalService: NzModalService,
+              private dataManageService: DataManageService,
+              private globalService: GlobalService) {
+  }
+
+  ngOnInit() {
+    // 查询表单
+    this.searchForm = this.formBuilder.group({
+      name: ''
+    });
+
+    // 用户编辑表单
+    this.editForm = this.formBuilder.group({
+      id: ['', CommonValidators.required],
+      vendorId: ['', CommonValidators.required],
+      name: ['', CommonValidators.required],
+    });
+
+    this.loadData(true);
+  }
+
+  // 打开新增用户对话框
+  add() {
+    this.editForm.reset();
+    this.isAdd = true;
+
+    this.editDialogInstance = this.modalService.open({
+      title: '新增',
+      content: this.editDialog,
+      width: 750,
+      maskClosable: false,
+      showConfirmLoading: true,
+      onOk: () => {
+        return this.onEditOk().toPromise();
+      }
+    });
+  }
+
+  // 打开修改对话框
+  edit(row) {
+    this.globalService.startLoading();
+    this.dataManageService.getPlanById(row.id).subscribe((data) => {
+      this.globalService.endLoading();
+      this.editForm.setValue(data);
+      this.isAdd = false;
+    });
+
+    this.editDialogInstance = this.modalService.open({
+      title: '修改',
+      content: this.editDialog,
+      width: 750,
+      maskClosable: false,
+      showConfirmLoading: true,
+      onOk: () => {
+        return this.onEditOk().toPromise();
+      }
+    });
+  }
+
+  // 确认删除操作
+  remove(row) {
+    this.globalService.startLoading();
+    this.dataManageService.deletePlan(row.id).subscribe(() => {
+      this.globalService.endLoading();
+      this.globalService.showSuccess('删除成功');
+      this.loadData();
+    });
+  }
+
+  // 加载列表数据
+  loadData(reset?: boolean) {
+    const query = Object.assign({}, this.searchForm.value);
+    query.page = reset ? 1 : this.pageIndex;
+    query.rows = this.pageSize;
+
+    this.tableLoading = true;
+    this.dataManageService.listPlan(query).subscribe((data) => {
+      this.total = data.total;
+      this.plans = data.rows;
+      this.tableLoading = false;
+    }, () => {
+      this.tableLoading = false;
+    });
+  }
+
+  // 新增/修改确认
+  onEditOk(): Observable<any> {
+    const data = this.editForm.value;
+
+    this.globalService.startLoading();
+    if (this.isAdd) {
+      return this.dataManageService.addPlan(data).do(() => {
+        this.globalService.endLoading();
+        this.globalService.showSuccess('新增成功');
+        this.loadData(true);
+      });
+    } else {
+      return this.dataManageService.updatePlan(data).do(() => {
+        this.globalService.endLoading();
+        this.globalService.showSuccess('修改成功');
+        this.loadData(true);
+      });
+    }
+  }
+}
